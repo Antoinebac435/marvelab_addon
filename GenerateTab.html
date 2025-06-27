@@ -1,0 +1,48 @@
+<!-- Génération IA avec sous-onglets : Insertion / Sélection -->
+<div class="content" id="generate" style="display:none;">
+
+  <div class="sub-tabs">
+    <button id="gen-insert-btn" class="active" onclick="switchGenMode('insert')">📥 Insertion IA</button>
+    <button id="gen-select-btn" onclick="switchGenMode('selection')">✏️ Sélection IA</button>
+  </div>
+
+  <!-- 🔹 Mode INSERTION : données Marvelab + prompts -->
+  <div id="gen-insert" class="gen-mode-section">
+    <button onclick="loadAllData()">📂 Charger les données</button>
+    <div id="dataList" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;"></div>
+
+    <h3>🎯 Choisir un prompt</h3>
+    <div class="radio-inputs">
+      <label class="radio"><input type="radio" name="promptOption" value="intro"><span class="name">🧠 Introduction</span></label>
+      <label class="radio"><input type="radio" name="promptOption" value="methodo"><span class="name">🔬 Méthodologie</span></label>
+      <label class="radio"><input type="radio" name="promptOption" value="conclusion"><span class="name">🧾 Conclusion</span></label>
+    </div>
+
+    <h3>💬 Ajout perso au prompt</h3>
+    <textarea id="customPrompt" rows="3" style="width: 100%;" placeholder="Ex. : traduis en anglais, fais-le plus synthétique..."></textarea>
+
+    <button onclick="generateFromPrompt()">🚀 Générer le texte</button>
+  </div>
+
+  <!-- 🔹 Mode SÉLECTION : IA sur texte sélectionné dans Docs -->
+  <div id="gen-selection" class="gen-mode-section" style="display:none;">
+    <h3>🖋️ Génération à partir du texte sélectionné</h3>
+    <p>Choisis le type de texte à générer :</p>
+
+    <div class="radio-inputs">
+      <label class="radio"><input type="radio" name="selectionPromptOption" value="intro"><span class="name">🧠 Introduction</span></label>
+      <label class="radio"><input type="radio" name="selectionPromptOption" value="methodo"><span class="name">🔬 Méthodologie</span></label>
+      <label class="radio"><input type="radio" name="selectionPromptOption" value="conclusion"><span class="name">🧾 Conclusion</span></label>
+    </div>
+
+    <textarea id="customSelectionPrompt" rows="3" style="width: 100%;" placeholder="Ajoute un style, une consigne en plus…"></textarea>
+    <button onclick="generateFromSelection()">✨ Générer depuis la sélection</button>
+
+    <hr>
+
+    <h3>✏️ Autres actions IA</h3>
+    <button onclick="correctSelection()">✅ Corriger la sélection</button>
+    <button onclick="reformulateSelection()">🔁 Reformuler la sélection</button>
+    <button onclick="criticizeSelection()">🧪 Critique constructive</button>
+  </div>
+</div>

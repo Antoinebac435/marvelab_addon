@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <?!= include('Style'); ?>
+  </head>
+  <body>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('insert')">Insertion</div>
+      <div class="tab" onclick="switchTab('generate')">Génération</div>
+    </div>
+
+    <?!= include('InsertTab'); ?>
+    <?!= include('GenerateTab'); ?>
+
+    <?!= include('Script'); ?>
+  </body>
+</html>

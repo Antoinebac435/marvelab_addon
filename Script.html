@@ -1,0 +1,193 @@
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(el => el.style.display = 'none');
+  document.querySelector(`.tab[onclick*="${tab}"]`).classList.add('active');
+  document.getElementById(tab).style.display = 'block';
+}
+
+function switchGenMode(mode) {
+  document.querySelectorAll('.sub-tabs button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById("gen-insert").style.display = mode === "insert" ? "block" : "none";
+  document.getElementById("gen-selection").style.display = mode === "selection" ? "block" : "none";
+  document.getElementById(`gen-${mode}-btn`).classList.add("active");
+}
+
+function loadItems(type) {
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("itemList").innerHTML = "";
+
+  google.script.run
+    .withSuccessHandler(function(items) {
+      displayItems(items, type);
+      document.getElementById("loader").style.display = "none";
+    })
+    .withFailureHandler(function(error) {
+      document.getElementById("loader").style.display = "none";
+      document.getElementById("itemList").innerHTML = `<li><em>Erreur : ${error.message}</em></li>`;
+    })
+    .fetchItems(type);
+}
+
+function displayItems(items, type) {
+  const list = document.getElementById("itemList");
+  list.innerHTML = "";
+
+  if (!items || items.length === 0) {
+    list.innerHTML = "<li><em>Aucun élément trouvé.</em></li>";
+    return;
+  }
+
+  items.forEach(item => {
+    const div = document.createElement("div");
+    const typeDisplay = formatTypeLabel(type);
+    const preview = item.content.length > 60 ? item.content.substring(0, 60) + "…" : item.content;
+
+    div.innerHTML = `
+      <div class="card" onclick="insertItem('${item.id}', '${type}', '${item.url}','${item.content}')">
+        <div class="card-details">
+          <p class="text-title">${typeDisplay} ${item.id} :</p>
+          <p class="text-body">${preview}</p>
+        </div>
+        <button class="card-button">Importer</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function insertItem(id, type, url, content) {
+  if (type === "resources" && url) {
+    google.script.run.insertImageToDoc(url);
+  } else {
+    google.script.run.insertTextToDoc(content);
+  }
+}
+
+function loadAllData() {
+  google.script.run.withSuccessHandler(displayAllItems).fetchAllItems();
+}
+
+function formatTypeLabel(type) {
+  switch (type) {
+    case "notes": return "Note";
+    case "interpretations": return "Interprétation";
+    case "resources": return "Ressource";
+    default: return type;
+  }
+}
+
+function displayAllItems(allData) {
+  const dataList = document.getElementById("dataList");
+  dataList.innerHTML = "";
+  window.allDataCache = allData;
+
+  allData.forEach((entry, index) => {
+    const contentText = typeof entry.content === "object" ? entry.content.content : entry.content;
+    const preview = contentText.length > 80 ? contentText.substring(0, 80) + "…" : contentText;
+    const typeLabel = formatTypeLabel(entry.type);
+
+    const div = document.createElement("div");
+    div.classList.add("card");
+    div.innerHTML = `
+      <div class="card-details">
+        <p class="text-title">${typeLabel}</p>
+        <p class="text-body">${preview}</p>
+      </div>
+      <label style="position:absolute; top:10px; right:10px;">
+        <input type="checkbox" data-index="${index}" />
+        ✅
+      </label>
+    `;
+    dataList.appendChild(div);
+  });
+}
+
+const predefinedPrompts = {
+  intro: "Génère une introduction pour un article scientifique sur ce sujet",
+  methodo: "Explique la méthodologie expérimentale utilisée dans cette étude",
+  conclusion: "Crée une conclusion scientifique en te basant sur les résultats observés"
+};
+
+function generateFromPrompt() {
+  const selectedPrompt = document.querySelector('input[name="promptOption"]:checked');
+  const custom = document.getElementById("customPrompt").value.trim();
+
+  const selectedCheckboxes = document.querySelectorAll('#dataList input[type="checkbox"]:checked');
+  if (!selectedPrompt && !custom) {
+    alert("❗ Choisis un prompt ou écris quelque chose.");
+    return;
+  }
+  if (selectedCheckboxes.length === 0) {
+    alert("❗ Sélectionne au moins une note ou interprétation.");
+    return;
+  }
+
+  let selectedTexts = [];
+  selectedCheckboxes.forEach(cb => {
+    const index = cb.dataset.index;
+    const data = window.allDataCache?.[index];
+    if (data) selectedTexts.push(data.content?.content || data.content);
+  });
+
+  const joinedText = selectedTexts.join("\n\n");
+  const basePrompt = selectedPrompt ? predefinedPrompts[selectedPrompt.value] : "";
+  const finalPrompt = `${basePrompt}${custom ? ", " + custom : ""}\n\n${joinedText}`;
+
+  google.script.run.generateConclusionFromPrompt(finalPrompt);
+}
+
+
+function generateFromSelection() {
+  const selectedPrompt = document.querySelector('input[name="selectionPromptOption"]:checked');
+  const custom = document.getElementById("customSelectionPrompt").value.trim();
+
+  if (!selectedPrompt && !custom) {
+    alert("❗ Choisis un prompt ou ajoute une consigne.");
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(text => insertTextToDoc(text))
+    .withFailureHandler(e => alert("❌ Erreur : " + e.message))
+    .getSelectedTextForPrompt(predefinedPrompts[selectedPrompt.value], custom);
+}
+
+function insertTextToDoc(text) {
+  google.script.run.insertTextToDoc(text);
+}
+
+function correctSelection() {
+  google.script.run
+    .withFailureHandler(e => alert("❌ Erreur : " + e.message))
+    .correctSelectedTextWithAI();
+}
+
+function reformulateSelection() {
+  google.script.run
+    .withFailureHandler(e => alert("❌ Erreur : " + e.message))
+    .reformulateSelectedTextWithAI();
+}
+
+function criticizeSelection() {
+  google.script.run
+    .withSuccessHandler((text) => showToaster(text))
+    .withFailureHandler(e => showToaster("❌ Erreur : " + e.message))
+    .generateConstructiveCriticism();
+}
+
+function showToaster(message) {
+  const toaster = document.createElement("div");
+  toaster.className = "toaster";
+  toaster.innerHTML = message;
+  document.body.appendChild(toaster);
+
+  setTimeout(() => {
+    toaster.classList.add("show");
+    setTimeout(() => {
+      toaster.classList.remove("show");
+      setTimeout(() => toaster.remove(), 1000);
+    }, 6000);
+  }, 100);
+}
+</script>
