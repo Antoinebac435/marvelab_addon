@@ -1,0 +1,22 @@
+# Fichiers de config perso
+.clasp.json
+
+# Dossiers de build éventuels
+/build
+/dist
+/node_modules
+/.vscode
+
+# Mac/Linux
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / couverture si tu fais des tests unitaires
+coverage
